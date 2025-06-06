@@ -53,16 +53,17 @@ def parse_results(results):
 
 
 def main():
-    # run bash command
     files = ["hello_world", "hello_world10"]
 
-    for file in files:
-        result = run_benchmark(file)
-        parsed_results = parse_results(result)
-        print(f"Results for {file}:")
-        print("Container Creation:", parsed_results["container_creation"])
-        print("Container Launching:", parsed_results["container_launching"])
-        print("Container Runtime:", parsed_results["container_runtime"])
+    results = {}
+    for i in files:
+        results[i] = []
+
+    for _ in range(50):
+        for file in files:
+            result = run_benchmark(file)
+            parsed_results = parse_results(result)
+            results[file].append(parsed_results)
 
 
 if __name__ == "__main__":
