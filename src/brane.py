@@ -33,6 +33,18 @@ def parse_results(results):
         elif CONTAINER_RUNTIME in line:
             container_runtime.append(line.replace(CONTAINER_RUNTIME, ""))
 
+    def convert_to_microseconds(value):
+        if value.endswith("us"):
+            return int(value[:-2])
+        elif value.endswith("ms"):
+            return int(value[:-2]) * 1000
+        else:
+            raise ValueError(f"Unexpected time format: {value}")
+
+    container_creation = [convert_to_microseconds(x) for x in container_creation]
+    container_launching = [convert_to_microseconds(x) for x in container_launching]
+    container_runtime = [convert_to_microseconds(x) for x in container_runtime]
+
     return {
         "container_creation": container_creation,
         "container_launching": container_launching,
