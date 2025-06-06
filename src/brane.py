@@ -6,7 +6,7 @@ CONTAINER_RUNTIME = "Container runtime timing results: "
 
 
 def run_benchmark(file):
-    command = f"exec/brane workflow run test src/{file}.bs --profile"
+    command = f"bin/brane workflow run test src/{file}.bs --profile"
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     result_stdout = result.stdout.split("\n")
     result_stdout = [
