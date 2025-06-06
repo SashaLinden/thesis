@@ -1,0 +1,13 @@
+// Test scripts that runs the hello_world package.
+import hello_world;
+
+hello_world();
+hello_world();
+hello_world();
+hello_world();
+hello_world();
+hello_world();
+hello_world();
+hello_world();
+hello_world();
+hello_world(); 
