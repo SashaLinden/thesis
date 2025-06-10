@@ -72,6 +72,49 @@ def parse_results(results: list) -> dict:
     }
 
 
+def plot_runtime(results: dict, file: str):
+    plt.figure(figsize=(12, 7))
+    x = np.arange(len(results["total_runtime"]))
+    width = 0.2
+
+    plt.bar(
+        x - 1.5 * width,
+        results["total_runtime"],
+        width,
+        label="Total Runtime",
+        color="blue",
+    )
+    plt.bar(
+        x - 0.5 * width,
+        results["container_creation"],
+        width,
+        label="Container Creation",
+        color="orange",
+    )
+    plt.bar(
+        x + 0.5 * width,
+        results["container_launching"],
+        width,
+        label="Container Launching",
+        color="green",
+    )
+    plt.bar(
+        x + 1.5 * width,
+        results["container_runtime"],
+        width,
+        label="Container Runtime",
+        color="red",
+    )
+
+    plt.title(f"Runtime Analysis for {file}")
+    plt.xlabel("Run Number")
+    plt.ylabel("Time (microseconds)")
+    plt.xticks(x, np.arange(1, len(results["total_runtime"]) + 1))
+    plt.legend()
+    plt.grid(axis="y")
+    plt.tight_layout()
+
+
 def main():
     files = ["hello_world", "hello_world10"]
 
@@ -123,6 +166,11 @@ def main():
         for key in average_results[file]:
             average_results[file][key] = np.round(average_results[file][key], 2)
     pprint.pp(average_results)
+
+    for file in files:
+        plot_runtime(average_results[file], file)
+
+    plt.show()
 
 
 if __name__ == "__main__":
