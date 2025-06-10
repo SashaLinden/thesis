@@ -12,6 +12,13 @@ CONTAINER_RUNTIME = "Container runtime timing results: "
 TOTAL_CONTAINER_TIME_PREV = "brane_cli::vm::OfflinePlugin::execute() timing results:"
 TOTAL_CONTAINER_TIME = "Total timing results: "
 
+CREATION = "container_creation"
+LAUNCHING = "container_launching"
+RUNTIME = "container_runtime"
+TOTAL_RUNTIME = "total_runtime"
+
+TIMING_RESULTS = [TOTAL_RUNTIME, LAUNCHING, RUNTIME, CREATION]
+
 
 def run_benchmark(file: str) -> list:
     command = f"bin/brane workflow run test src/{file}.bs --profile"
@@ -28,25 +35,25 @@ def run_benchmark(file: str) -> list:
     return result_stdout
 
 
-def parse_results(results: list) -> dict:
-    container_creation = []
-    container_launching = []
-    container_runtime = []
-    total_runtime = []
+def parse_results(lines: list) -> dict:
+    results = {}
+
+    for i in TIMING_RESULTS:
+        results[i] = []
 
     previous_line = ""
 
-    for line in results:
+    for line in lines:
         if CONTAINER_CREATION in line:
-            container_creation.append(line.replace(CONTAINER_CREATION, ""))
+            results[CREATION].append(line.replace(CONTAINER_CREATION, ""))
         elif CONTAINER_LAUNCHING in line:
-            container_launching.append(line.replace(CONTAINER_LAUNCHING, ""))
+            results[LAUNCHING].append(line.replace(CONTAINER_LAUNCHING, ""))
         elif CONTAINER_RUNTIME in line:
-            container_runtime.append(line.replace(CONTAINER_RUNTIME, ""))
+            results[RUNTIME].append(line.replace(CONTAINER_RUNTIME, ""))
         elif (
             TOTAL_CONTAINER_TIME_PREV in previous_line and TOTAL_CONTAINER_TIME in line
         ):
-            total_runtime.append(line.replace(TOTAL_CONTAINER_TIME, ""))
+            results[TOTAL_RUNTIME].append(line.replace(TOTAL_CONTAINER_TIME, ""))
         previous_line = line
 
     def convert_to_microseconds(value):
@@ -59,17 +66,12 @@ def parse_results(results: list) -> dict:
         else:
             raise ValueError(f"Unexpected time format: {value}")
 
-    container_creation = [convert_to_microseconds(x) for x in container_creation]
-    container_launching = [convert_to_microseconds(x) for x in container_launching]
-    container_runtime = [convert_to_microseconds(x) for x in container_runtime]
-    total_runtime = [convert_to_microseconds(x) for x in total_runtime]
+    for i in TIMING_RESULTS:
+        if not results[i]:
+            raise ValueError(f"No results found for {i}")
+        results[i] = [convert_to_microseconds(x) for x in results[i]]
 
-    return {
-        "container_creation": container_creation,
-        "container_launching": container_launching,
-        "container_runtime": container_runtime,
-        "total_runtime": total_runtime,
-    }
+    return results
 
 
 def plot_runtime(results: dict, file: str):
@@ -77,71 +79,21 @@ def plot_runtime(results: dict, file: str):
     x = np.arange(len(results["total_runtime"]))
     width = 0.2
 
-    plt.errorbar(
-        x + 2 * width,
-        np.mean(results["container_creation"], axis=1),
-        yerr=np.std(results["container_creation"], axis=1),
-        fmt="o",
-        color="blue",
-    )
-
-    plt.errorbar(
-        x,
-        np.mean(results["container_launching"], axis=1),
-        yerr=np.std(results["container_launching"], axis=1),
-        fmt="o",
-        color="orange",
-    )
-    plt.errorbar(
-        x + width,
-        np.mean(results["container_runtime"], axis=1),
-        yerr=np.std(results["container_runtime"], axis=1),
-        fmt="o",
-        color="green",
-    )
-    plt.errorbar(
-        x - width,
-        np.mean(results["total_runtime"], axis=1),
-        yerr=np.std(results["total_runtime"], axis=1),
-        fmt="o",
-        color="red",
-    )
-    plt.bar(
-        x + 2 * width,
-        np.mean(results["container_creation"], axis=1),
-        width=width,
-        yerr=np.std(results["container_creation"], axis=1),
-        color="blue",
-        alpha=0.5,
-        label="Container Creation",
-    )
-    plt.bar(
-        x,
-        np.mean(results["container_launching"], axis=1),
-        width=width,
-        yerr=np.std(results["container_launching"], axis=1),
-        color="orange",
-        alpha=0.5,
-        label="Container Launching",
-    )
-    plt.bar(
-        x + width,
-        np.mean(results["container_runtime"], axis=1),
-        width=width,
-        yerr=np.std(results["container_runtime"], axis=1),
-        color="green",
-        alpha=0.5,
-        label="Container Runtime",
-    )
-    plt.bar(
-        x - width,
-        np.mean(results["total_runtime"], axis=1),
-        width=width,
-        yerr=np.std(results["total_runtime"], axis=1),
-        color="red",
-        alpha=0.5,
-        label="Total Runtime",
-    )
+    for i, j in enumerate(TIMING_RESULTS):
+        plt.errorbar(
+            x + i * width - width,
+            np.mean(results[j], axis=1),
+            yerr=np.std(results[j], axis=1),
+            fmt="o",
+        )
+        plt.bar(
+            x + i * width - width,
+            np.mean(results[j], axis=1),
+            width=width,
+            yerr=np.std(results[j], axis=1),
+            alpha=0.5,
+            label=j.replace("_", " ").title(),
+        )
 
     plt.title(f"Runtime Analysis for {file}")
     plt.xlabel("Run Number")
@@ -179,26 +131,12 @@ def main():
     # Calculate average results
     total_results = {}
     for file in files:
-        total_results[file] = {
-            "container_creation": [],
-            "container_launching": [],
-            "container_runtime": [],
-            "total_runtime": [],
-        }
-    for file in files:
-        total_results[file]["container_creation"] = [
-            list(x) for x in zip(*results[file]["container_creation"])
-        ]
+        total_results[file] = {metric: [] for metric in TIMING_RESULTS}
 
-        total_results[file]["container_launching"] = [
-            list(x) for x in zip(*results[file]["container_launching"])
-        ]
-        total_results[file]["container_runtime"] = [
-            list(x) for x in zip(*results[file]["container_runtime"])
-        ]
-        total_results[file]["total_runtime"] = [
-            list(x) for x in zip(*results[file]["total_runtime"])
-        ]
+    for file in files:
+        for metric in TIMING_RESULTS:
+            # Group values by index for each metric
+            total_results[file][metric] = [list(x) for x in zip(*results[file][metric])]
 
     for file in files:
         plot_runtime(total_results[file], file)
