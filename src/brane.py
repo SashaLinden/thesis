@@ -77,33 +77,70 @@ def plot_runtime(results: dict, file: str):
     x = np.arange(len(results["total_runtime"]))
     width = 0.2
 
-    plt.bar(
-        x - 1.5 * width,
-        results["total_runtime"],
-        width,
-        label="Total Runtime",
+    plt.errorbar(
+        x - width,
+        np.mean(results["container_creation"], axis=1),
+        yerr=np.std(results["container_creation"], axis=1),
+        fmt="o",
         color="blue",
     )
-    plt.bar(
-        x - 0.5 * width,
-        results["container_creation"],
-        width,
-        label="Container Creation",
+
+    plt.errorbar(
+        x,
+        np.mean(results["container_launching"], axis=1),
+        yerr=np.std(results["container_launching"], axis=1),
+        fmt="o",
         color="orange",
     )
-    plt.bar(
-        x + 0.5 * width,
-        results["container_launching"],
-        width,
-        label="Container Launching",
+    plt.errorbar(
+        x + width,
+        np.mean(results["container_runtime"], axis=1),
+        yerr=np.std(results["container_runtime"], axis=1),
+        fmt="o",
         color="green",
     )
-    plt.bar(
-        x + 1.5 * width,
-        results["container_runtime"],
-        width,
-        label="Container Runtime",
+    plt.errorbar(
+        x + 2 * width,
+        np.mean(results["total_runtime"], axis=1),
+        yerr=np.std(results["total_runtime"], axis=1),
+        fmt="o",
         color="red",
+    )
+    plt.bar(
+        x - width,
+        np.mean(results["container_creation"], axis=1),
+        width=width,
+        yerr=np.std(results["container_creation"], axis=1),
+        color="blue",
+        alpha=0.5,
+        label="Container Creation",
+    )
+    plt.bar(
+        x,
+        np.mean(results["container_launching"], axis=1),
+        width=width,
+        yerr=np.std(results["container_launching"], axis=1),
+        color="orange",
+        alpha=0.5,
+        label="Container Launching",
+    )
+    plt.bar(
+        x + width,
+        np.mean(results["container_runtime"], axis=1),
+        width=width,
+        yerr=np.std(results["container_runtime"], axis=1),
+        color="green",
+        alpha=0.5,
+        label="Container Runtime",
+    )
+    plt.bar(
+        x + 2 * width,
+        np.mean(results["total_runtime"], axis=1),
+        width=width,
+        yerr=np.std(results["total_runtime"], axis=1),
+        color="red",
+        alpha=0.5,
+        label="Total Runtime",
     )
 
     plt.title(f"Runtime Analysis for {file}")
@@ -124,7 +161,7 @@ def main():
         results[i] = {}
 
     # Run benchmarks for each file 50 times
-    # for _ in trange(50, desc="Benchmark rounds"):
+    # for _ in trange(3, desc="Benchmark rounds"):
     #     for file in files:
     #         result = run_benchmark(file)
     #         parsed_results = parse_results(result)
@@ -133,42 +170,44 @@ def main():
     #                 results[file][key] = [parsed_results[key]]
     #             else:
     #                 results[file][key].append(parsed_results[key])
-    # with open("results.pkl", "wb") as f:
+    # with open("results3.pkl", "wb") as f:
     #     pickle.dump(results, f)
 
     with open("results.pkl", "rb") as f:
         results = pickle.load(f)
-    # pprint.pp(results)
+
     # Calculate average results
-    average_results = {}
+    total_results = {}
     for file in files:
-        average_results[file] = {
+        total_results[file] = {
             "container_creation": [],
             "container_launching": [],
             "container_runtime": [],
             "total_runtime": [],
         }
     for file in files:
-        average_results[file]["container_creation"] = np.mean(
-            results[file]["container_creation"], axis=0
-        )
-        average_results[file]["container_launching"] = np.mean(
-            results[file]["container_launching"], axis=0
-        )
-        average_results[file]["container_runtime"] = np.mean(
-            results[file]["container_runtime"], axis=0
-        )
-        average_results[file]["total_runtime"] = np.mean(
-            results[file]["total_runtime"], axis=0
-        )
+        total_results[file]["container_creation"] = [
+            list(x) for x in zip(*results[file]["container_runtime"])
+        ]
+
+        total_results[file]["container_launching"] = [
+            list(x) for x in zip(*results[file]["container_launching"])
+        ]
+        total_results[file]["container_runtime"] = [
+            list(x) for x in zip(*results[file]["container_runtime"])
+        ]
+        total_results[file]["total_runtime"] = [
+            list(x) for x in zip(*results[file]["total_runtime"])
+        ]
+
     # Round all values to 2 decimals
-    for file in average_results:
-        for key in average_results[file]:
-            average_results[file][key] = np.round(average_results[file][key], 2)
-    pprint.pp(average_results)
+    # for file in average_results:
+    #     for key in average_results[file]:
+    #         average_results[file][key] = np.round(average_results[file][key], 2)
+    pprint.pp(total_results["hello_world10"])
 
     for file in files:
-        plot_runtime(average_results[file], file)
+        plot_runtime(total_results[file], file)
 
     plt.show()
 
