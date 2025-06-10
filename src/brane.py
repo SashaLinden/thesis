@@ -1,4 +1,7 @@
 import subprocess
+import numpy as np
+import matplotlib.pyplot as plt
+import pprint
 
 CONTAINER_CREATION = "Container creation timing results: "
 CONTAINER_LAUNCHING = "Container launching timing results: "
@@ -38,6 +41,8 @@ def parse_results(results):
             return int(value[:-2])
         elif value.endswith("ms"):
             return int(value[:-2]) * 1000
+        elif value.endswith("s"):
+            return int(value[:-1]) * 1000000
         else:
             raise ValueError(f"Unexpected time format: {value}")
 
@@ -56,14 +61,30 @@ def main():
     files = ["hello_world", "hello_world10"]
 
     results = {}
+    # Initialize results dictionary
     for i in files:
-        results[i] = []
+        results[i] = {}
 
-    for _ in range(50):
+    # Run benchmarks for each file 50 times
+    for _ in range(3):
         for file in files:
             result = run_benchmark(file)
             parsed_results = parse_results(result)
-            results[file].append(parsed_results)
+            for key in parsed_results:
+                if key not in results[file]:
+                    results[file][key] = [parsed_results[key]]
+                else:
+                    results[file][key].append(parsed_results[key])
+
+    pprint.pp(results)
+    # Calculate average results
+    average_results = {}
+    for file in files:
+        average_results[file] = {
+            "container_creation": np.mean(results[file]["container_creation"]),
+            "container_launching": np.mean(results[file]["container_launching"]),
+            "container_runtime": np.mean(results[file]["container_runtime"]),
+        }
 
 
 if __name__ == "__main__":
