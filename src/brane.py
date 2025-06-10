@@ -76,15 +76,30 @@ def main():
                 else:
                     results[file][key].append(parsed_results[key])
 
-    pprint.pp(results)
+    # pprint.pp(results)
     # Calculate average results
     average_results = {}
     for file in files:
         average_results[file] = {
-            "container_creation": np.mean(results[file]["container_creation"]),
-            "container_launching": np.mean(results[file]["container_launching"]),
-            "container_runtime": np.mean(results[file]["container_runtime"]),
+            "container_creation": [],
+            "container_launching": [],
+            "container_runtime": [],
         }
+    for file in files:
+        average_results[file]["container_creation"] = np.mean(
+            results[file]["container_creation"], axis=0
+        )
+        average_results[file]["container_launching"] = np.mean(
+            results[file]["container_launching"], axis=0
+        )
+        average_results[file]["container_runtime"] = np.mean(
+            results[file]["container_runtime"], axis=0
+        )
+    # Round all values to 2 decimals
+    for file in average_results:
+        for key in average_results[file]:
+            average_results[file][key] = np.round(average_results[file][key], 2)
+    pprint.pp(average_results)
 
 
 if __name__ == "__main__":
