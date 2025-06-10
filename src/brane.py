@@ -2,13 +2,17 @@ import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 import pprint
+from tqdm import trange
+
 
 CONTAINER_CREATION = "Container creation timing results: "
 CONTAINER_LAUNCHING = "Container launching timing results: "
 CONTAINER_RUNTIME = "Container runtime timing results: "
+TOTAL_CONTAINER_TIME_PREV = "brane_cli::vm::OfflinePlugin::execute() timing results:"
+TOTAL_CONTAINER_TIME = "Total timing results: "
 
 
-def run_benchmark(file):
+def run_benchmark(file: str) -> list:
     command = f"bin/brane workflow run test src/{file}.bs --profile"
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     result_stdout = result.stdout.split("\n")
@@ -23,10 +27,13 @@ def run_benchmark(file):
     return result_stdout
 
 
-def parse_results(results):
+def parse_results(results: list) -> dict:
     container_creation = []
     container_launching = []
     container_runtime = []
+    total_runtime = []
+
+    previous_line = ""
 
     for line in results:
         if CONTAINER_CREATION in line:
@@ -35,6 +42,11 @@ def parse_results(results):
             container_launching.append(line.replace(CONTAINER_LAUNCHING, ""))
         elif CONTAINER_RUNTIME in line:
             container_runtime.append(line.replace(CONTAINER_RUNTIME, ""))
+        elif (
+            TOTAL_CONTAINER_TIME_PREV in previous_line and TOTAL_CONTAINER_TIME in line
+        ):
+            total_runtime.append(line.replace(TOTAL_CONTAINER_TIME, ""))
+        previous_line = line
 
     def convert_to_microseconds(value):
         if value.endswith("us"):
@@ -49,11 +61,13 @@ def parse_results(results):
     container_creation = [convert_to_microseconds(x) for x in container_creation]
     container_launching = [convert_to_microseconds(x) for x in container_launching]
     container_runtime = [convert_to_microseconds(x) for x in container_runtime]
+    total_runtime = [convert_to_microseconds(x) for x in total_runtime]
 
     return {
         "container_creation": container_creation,
         "container_launching": container_launching,
         "container_runtime": container_runtime,
+        "total_runtime": total_runtime,
     }
 
 
@@ -66,7 +80,7 @@ def main():
         results[i] = {}
 
     # Run benchmarks for each file 50 times
-    for _ in range(3):
+    for _ in trange(50, desc="Benchmark rounds"):
         for file in files:
             result = run_benchmark(file)
             parsed_results = parse_results(result)
@@ -84,6 +98,7 @@ def main():
             "container_creation": [],
             "container_launching": [],
             "container_runtime": [],
+            "total_runtime": [],
         }
     for file in files:
         average_results[file]["container_creation"] = np.mean(
@@ -94,6 +109,9 @@ def main():
         )
         average_results[file]["container_runtime"] = np.mean(
             results[file]["container_runtime"], axis=0
+        )
+        average_results[file]["total_runtime"] = np.mean(
+            results[file]["total_runtime"], axis=0
         )
     # Round all values to 2 decimals
     for file in average_results:
