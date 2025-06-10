@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pprint
 from tqdm import trange
+import pickle
 
 
 CONTAINER_CREATION = "Container creation timing results: "
@@ -80,16 +81,20 @@ def main():
         results[i] = {}
 
     # Run benchmarks for each file 50 times
-    for _ in trange(50, desc="Benchmark rounds"):
-        for file in files:
-            result = run_benchmark(file)
-            parsed_results = parse_results(result)
-            for key in parsed_results:
-                if key not in results[file]:
-                    results[file][key] = [parsed_results[key]]
-                else:
-                    results[file][key].append(parsed_results[key])
+    # for _ in trange(50, desc="Benchmark rounds"):
+    #     for file in files:
+    #         result = run_benchmark(file)
+    #         parsed_results = parse_results(result)
+    #         for key in parsed_results:
+    #             if key not in results[file]:
+    #                 results[file][key] = [parsed_results[key]]
+    #             else:
+    #                 results[file][key].append(parsed_results[key])
+    # with open("results.pkl", "wb") as f:
+    #     pickle.dump(results, f)
 
+    with open("results.pkl", "rb") as f:
+        results = pickle.load(f)
     # pprint.pp(results)
     # Calculate average results
     average_results = {}
