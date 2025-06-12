@@ -105,7 +105,7 @@ def plot_runtime(results: dict, file: str):
 
 
 def main():
-    files = ["hello_world", "hello_world10"]
+    files = ["prime"]
 
     results = {}
     # Initialize results dictionary
@@ -113,20 +113,20 @@ def main():
         results[i] = {}
 
     # Run benchmarks for each file 50 times
-    # for _ in trange(3, desc="Benchmark rounds"):
-    #     for file in files:
-    #         result = run_benchmark(file)
-    #         parsed_results = parse_results(result)
-    #         for key in parsed_results:
-    #             if key not in results[file]:
-    #                 results[file][key] = [parsed_results[key]]
-    #             else:
-    #                 results[file][key].append(parsed_results[key])
-    # with open("results3.pkl", "wb") as f:
-    #     pickle.dump(results, f)
+    for _ in trange(50, desc="Benchmark rounds"):
+        for file in files:
+            result = run_benchmark(file)
+            parsed_results = parse_results(result)
+            for key in parsed_results:
+                if key not in results[file]:
+                    results[file][key] = [parsed_results[key]]
+                else:
+                    results[file][key].append(parsed_results[key])
+    with open("results50prime.pkl", "wb") as f:
+        pickle.dump(results, f)
 
-    with open("results.pkl", "rb") as f:
-        results = pickle.load(f)
+    # with open("results.pkl", "rb") as f:
+    #     results = pickle.load(f)
 
     # Calculate average results
     total_results = {}
