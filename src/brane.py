@@ -17,7 +17,7 @@ LAUNCHING = "container_launching"
 RUNTIME = "container_runtime"
 TOTAL_RUNTIME = "total_runtime"
 
-TIMING_RESULTS = [TOTAL_RUNTIME, LAUNCHING, RUNTIME, CREATION]
+TIMING_RESULTS = [CREATION, LAUNCHING, RUNTIME, TOTAL_RUNTIME]
 
 
 def run_benchmark(file: str) -> list:
@@ -33,6 +33,17 @@ def run_benchmark(file: str) -> list:
     ]
 
     return result_stdout
+
+
+def convert_to_milliseconds(value):
+    if value.endswith("us"):
+        return int(value[:-2]) / 1000
+    elif value.endswith("ms"):
+        return int(value[:-2])
+    elif value.endswith("s"):
+        return int(value[:-1]) * 1000
+    else:
+        raise ValueError(f"Unexpected time format: {value}")
 
 
 def parse_results(lines: list) -> dict:
@@ -56,26 +67,20 @@ def parse_results(lines: list) -> dict:
             results[TOTAL_RUNTIME].append(line.replace(TOTAL_CONTAINER_TIME, ""))
         previous_line = line
 
-    def convert_to_microseconds(value):
-        if value.endswith("us"):
-            return int(value[:-2])
-        elif value.endswith("ms"):
-            return int(value[:-2]) * 1000
-        elif value.endswith("s"):
-            return int(value[:-1]) * 1000000
-        else:
-            raise ValueError(f"Unexpected time format: {value}")
-
     for i in TIMING_RESULTS:
         if not results[i]:
             raise ValueError(f"No results found for {i}")
-        results[i] = [convert_to_microseconds(x) for x in results[i]]
+        results[i] = [convert_to_milliseconds(x) for x in results[i]]
 
     return results
 
 
 def plot_runtime(results: dict, file: str):
-    plt.figure(figsize=(12, 7))
+    if file == "hello_world" or file == "prime":
+        plt.figure(figsize=(4, 7))
+    else:
+        plt.figure(figsize=(12, 7))
+
     x = np.arange(len(results["total_runtime"]))
     width = 0.2
 
@@ -97,15 +102,18 @@ def plot_runtime(results: dict, file: str):
 
     plt.title(f"Runtime Analysis for {file}")
     plt.xlabel("Run Number")
-    plt.ylabel("Time (microseconds)")
+    plt.ylabel("Time (milliseconds)")
     plt.xticks(x, np.arange(1, len(results["total_runtime"]) + 1))
     plt.legend()
     plt.grid(axis="y")
     plt.tight_layout()
 
+    # save the plot
+    plt.savefig(f"figures/{file}_runtime_analysis.png")
+
 
 def main():
-    files = ["prime"]
+    files = ["hello_world", "hello_world10", "prime"]
 
     results = {}
     # Initialize results dictionary
@@ -113,20 +121,20 @@ def main():
         results[i] = {}
 
     # Run benchmarks for each file 50 times
-    for _ in trange(50, desc="Benchmark rounds"):
-        for file in files:
-            result = run_benchmark(file)
-            parsed_results = parse_results(result)
-            for key in parsed_results:
-                if key not in results[file]:
-                    results[file][key] = [parsed_results[key]]
-                else:
-                    results[file][key].append(parsed_results[key])
-    with open("results50prime.pkl", "wb") as f:
-        pickle.dump(results, f)
+    # for _ in trange(50, desc="Benchmark rounds"):
+    #     for file in files:
+    #         result = run_benchmark(file)
+    #         parsed_results = parse_results(result)
+    #         for key in parsed_results:
+    #             if key not in results[file]:
+    #                 results[file][key] = [parsed_results[key]]
+    #             else:
+    #                 results[file][key].append(parsed_results[key])
+    # with open("resultsall.pkl", "wb") as f:
+    #     pickle.dump(results, f)
 
-    # with open("results.pkl", "rb") as f:
-    #     results = pickle.load(f)
+    with open("resultsall.pkl", "rb") as f:
+        results = pickle.load(f)
 
     # Calculate average results
     total_results = {}
